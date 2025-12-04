@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     select: false,
     required: [true, "Password is required"],
-    validate: [validator.isStrongPassword, "Please provide a strong password"],
+    // validate: [validator.isStrongPassword, "Please provide a strong password"],
   },
   passwordConfirm: {
     type: String,

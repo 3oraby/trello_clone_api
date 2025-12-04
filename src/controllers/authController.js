@@ -49,9 +49,11 @@ exports.protect = catchAsc(async (req, res, next) => {
     );
   }
 
-  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  const decoded = await jwt.verify(token, process.env.JWT_SECRET);
 
   const user = await User.findById(decoded.id);
+
+  console.log(user);
   if (!user) {
     return next(
       new AppError(
@@ -95,4 +97,30 @@ exports.signup = catchAsc(async (req, res, next) => {
   });
 
   createSendToken(newUser, 201, res, "User created successfully");
+});
+
+exports.updatePassword = catchAsc(async (req, res, next) => {
+  const { currentPassword, newPassword, newPasswordConfirm } = req.body;
+  if (!currentPassword || !newPassword || !newPasswordConfirm) {
+    return next(
+      new AppError(
+        "Please provide currentPassword , newPassword and newPasswordConfirm",
+        400
+      )
+    );
+  }
+
+  const user = await User.findById(req.user.id).select("+password");
+
+  if (!user || !(await user.correctPassword(currentPassword, user.password))) {
+    return next(new AppError("current password is not correct", 401));
+  }
+
+  user.password = newPassword;
+  user.passwordConfirm = newPasswordConfirm;
+
+  // to validate password and passwordConfirm
+  await user.save();
+
+  createSendToken(user, 200, res, "Password updated successfully");
 });
