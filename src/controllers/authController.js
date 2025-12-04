@@ -25,7 +25,7 @@ const createSendToken = (user, statusCode, res, message) => {
 
   res.cookie("jwt", token, cookieOptions);
 
-  //   user.password = undefined;
+  user.password = undefined;
 
   res.status(statusCode).json({
     status: "success",
@@ -73,7 +73,7 @@ exports.login = catchAsc(async (req, res, next) => {
   // select +password to compare password
   const user = await User.findOne({ email }).select("+password");
 
-  if (!user || !(await user.correctPassword(password))) {
+  if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError("Incorrect email or password", 401));
   }
 

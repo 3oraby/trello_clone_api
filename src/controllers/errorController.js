@@ -26,7 +26,13 @@ const sendErrorProd = (err, res) => {
 
 const handleValidationError = (err) => {
   const errors = Object.values(err.errors).map((el) => el.message);
-  const message = `Invalid input data. ${errors.join(". ")}`;
+  const message = `Invalid input data. ${errors.join(".")}`;
+  return new AppError(message, 400);
+};
+
+const handleDuplicateFieldsDB = (err) => {
+  const value = Object.values(err.keyValue)[0];
+  const message = `Duplicate field value: ${value}. Please use another value!`;
   return new AppError(message, 400);
 };
 
@@ -40,6 +46,7 @@ module.exports = (err, req, res, next) => {
     let error = Object.create(err);
 
     if (error.name === "ValidationError") error = handleValidationError(error);
+    if (error.code === 11000) error = handleDuplicateFieldsDB(error);
     sendErrorProd(error, res);
   } else {
     console.log(
