@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
+    select: false,
     required: [true, "Password is required"],
     validate: [validator.isStrongPassword, "Please provide a strong password"],
   },
@@ -48,6 +49,7 @@ const userSchema = new mongoose.Schema({
 // hash password before save user
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
+
   this.password = await bcrypt.hash(this.password, 12);
 
   // remove passwordConfirm before save user
@@ -64,6 +66,7 @@ userSchema.methods.correctPassword = async function (
   candidatePassword,
   userPassword
 ) {
+  if (!candidatePassword || !userPassword) return false;
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
