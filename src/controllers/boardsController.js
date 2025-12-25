@@ -11,3 +11,8 @@ exports.setBoardUserIds = (req, res, next) => {
   if (!req.body.ownerId) req.body.ownerId = req.user.id;
   next();
 };
+
+exports.filterByUser = (req, res, next) => {
+  req.filter = { ownerId: req.user.id };
+  next();
+};

@@ -19,8 +19,18 @@ exports.createOne = (Model) =>
 
 exports.getAll = (Model) =>
   catchAsync(async (req, res, next) => {
-    const docs = await Model.find();
+    let filter = {};
+
+    if (req.filter) {
+      filter = req.filter;
+    }
+
+    const docs = await Model.find(filter);
     const key = getModelKey(Model, true);
+
+    if (!docs) {
+      return next(new AppError("No documents found", 404));
+    }
 
     res.status(200).json({
       status: "success",

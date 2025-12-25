@@ -1,23 +1,19 @@
 const express = require("express");
 
 const router = express.Router();
-const {
-  getAllBoards,
-  createBoard,
-  getBoard,
-  updateBoard,
-  deleteBoard,
-  setBoardUserIds,
-} = require("../controllers/boardsController");
+const boardsController = require("../controllers/boardsController");
 
 const { protect, restrictTo } = require("../controllers/authController");
 
 router.use(protect);
-router.route("/").get(getAllBoards).post(setBoardUserIds, createBoard);
+router
+  .route("/")
+  .get(boardsController.filterByUser, boardsController.getAllBoards)
+  .post(boardsController.setBoardUserIds, boardsController.createBoard);
 router
   .route("/:id")
-  .get(getBoard)
-  .patch(restrictTo("admin"), updateBoard)
-  .delete(restrictTo("admin"), deleteBoard);
+  .get(boardsController.getBoard)
+  .patch(restrictTo("admin"), boardsController.updateBoard)
+  .delete(restrictTo("admin"), boardsController.deleteBoard);
 
 module.exports = router;
