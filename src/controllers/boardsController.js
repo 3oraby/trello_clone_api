@@ -6,6 +6,7 @@ exports.createBoard = handlerFactory.createOne(Board);
 exports.getBoard = handlerFactory.getOne(Board);
 exports.updateBoard = handlerFactory.updateOne(Board);
 exports.deleteBoard = handlerFactory.deleteOne(Board);
+exports.getMyBoards = handlerFactory.getAll(Board);
 
 exports.setBoardUserIds = (req, res, next) => {
   if (!req.body.ownerId) req.body.ownerId = req.user.id;

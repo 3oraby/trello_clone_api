@@ -1,5 +1,6 @@
 const catchAsync = require("../utils/catchAsc");
 const AppError = require("../utils/appError");
+const APIFeatures = require("../utils/apiFeatures");
 
 const getModelKey = (Model, plural = false) => {
   const name = Model.modelName.toLowerCase();
@@ -19,18 +20,15 @@ exports.createOne = (Model) =>
 
 exports.getAll = (Model) =>
   catchAsync(async (req, res, next) => {
-    let filter = {};
+    const filter =
+      req.filter && typeof req.filter === "object" ? req.filter : {};
 
-    if (req.filter) {
-      filter = req.filter;
-    }
+    const features = new APIFeatures(Model.find(filter), req.query);
+    features.filter().sort().fields().paginate();
 
-    const docs = await Model.find(filter);
+    const docs = await features.query;
+
     const key = getModelKey(Model, true);
-
-    if (!docs) {
-      return next(new AppError("No documents found", 404));
-    }
 
     res.status(200).json({
       status: "success",

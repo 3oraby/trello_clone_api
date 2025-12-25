@@ -5,15 +5,17 @@ const boardsController = require("../controllers/boardsController");
 
 const { protect, restrictTo } = require("../controllers/authController");
 
+router.get("/getAll", boardsController.getAllBoards);
+
 router.use(protect);
 router
   .route("/")
-  .get(boardsController.filterByUser, boardsController.getAllBoards)
+  .get(boardsController.filterByUser, boardsController.getMyBoards)
   .post(boardsController.setBoardUserIds, boardsController.createBoard);
 router
   .route("/:id")
   .get(boardsController.getBoard)
-  .patch(restrictTo("admin"), boardsController.updateBoard)
-  .delete(restrictTo("admin"), boardsController.deleteBoard);
+  .patch(boardsController.updateBoard)
+  .delete(boardsController.deleteBoard);
 
 module.exports = router;
