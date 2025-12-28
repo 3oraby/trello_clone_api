@@ -21,6 +21,48 @@ exports.filterByUser = (req, res, next) => {
   next();
 };
 
+exports.restrictBoardTo = (...roles) => {
+  return async (req, res, next) => {
+    const boardId = req.params.id;
+    const userId = req.user.id;
+    console.log(boardId, userId);
+
+    const board = await Board.findById(boardId);
+    if (!board) return next(new AppError("Board not found", 404));
+
+    let boardRole;
+    let membership;
+
+    if (board.ownerId === userId) {
+      boardRole = boardRoles.ADMIN;
+    } else {
+      membership = await BoardMember.findOne({ boardId, userId });
+      if (!membership) {
+        return next(
+          new AppError("You do not have permission to access this board", 403)
+        );
+      }
+      boardRole = membership.role;
+    }
+
+    console.log("Board:", board);
+    console.log("User Role:", boardRole);
+    console.log("Allowed Roles:", roles);
+
+    if (!roles.includes(boardRole)) {
+      console.log("Permission Denied: User role is not authorized");
+      return next(
+        new AppError("You do not have permission to perform this action", 403)
+      );
+    }
+
+    req.board = board;
+    req.boardMembership = membership;
+
+    next();
+  };
+};
+
 exports.createBoard = catchAsync(async (req, res, next) => {
   if (!req.body.ownerId) req.body.ownerId = req.user.id;
 
@@ -37,7 +79,6 @@ exports.createBoard = catchAsync(async (req, res, next) => {
     board,
   });
 });
-
 
 // assign user id to board
 // archive board
