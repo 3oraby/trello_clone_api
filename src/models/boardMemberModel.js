@@ -26,7 +26,16 @@ const boardMemberSchema = new mongoose.Schema(
       ref: "User",
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform(doc, ret) {
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
 );
 
 boardMemberSchema.index({ userId: 1, boardId: 1 }, { unique: true });

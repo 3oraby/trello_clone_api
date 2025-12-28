@@ -13,6 +13,19 @@ router
   .route("/")
   .get(boardsController.filterByUser, boardsController.getMyBoards)
   .post(boardsController.setBoardUserIds, boardsController.createBoard);
+
+router.post(
+  "/:boardId/members/:userId",
+  boardsController.restrictBoardTo(boardRoles.OWNER),
+  boardsController.assignUserToBoard
+);
+
+router.get(
+  "/:boardId/members",
+  boardsController.restrictBoardTo(boardRoles.OWNER, boardRoles.ADMIN),
+  boardsController.getBoardMembers
+);
+
 router
   .route("/:id")
   .get(boardsController.getBoard)

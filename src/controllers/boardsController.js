@@ -4,6 +4,7 @@ const BoardMember = require("../models/boardMemberModel");
 const AppError = require("../utils/appError");
 const boardRoles = require("../enums/boardRoles");
 const catchAsync = require("../utils/catchAsc");
+const HttpStatus = require("../enums/httpStatus");
 
 exports.getAllBoards = handlerFactory.getAll(Board);
 exports.getBoard = handlerFactory.getOne(Board);
@@ -23,7 +24,7 @@ exports.filterByUser = (req, res, next) => {
 
 exports.restrictBoardTo = (...roles) => {
   return async (req, res, next) => {
-    const boardId = req.params.id;
+    const boardId = req.params.id || req.params.boardId;
     const userId = req.user.id;
     console.log(boardId, userId);
 
@@ -45,12 +46,7 @@ exports.restrictBoardTo = (...roles) => {
       boardRole = membership.role;
     }
 
-    console.log("Board:", board);
-    console.log("User Role:", boardRole);
-    console.log("Allowed Roles:", roles);
-
     if (!roles.includes(boardRole)) {
-      console.log("Permission Denied: User role is not authorized");
       return next(
         new AppError("You do not have permission to perform this action", 403)
       );
@@ -80,9 +76,48 @@ exports.createBoard = catchAsync(async (req, res, next) => {
   });
 });
 
-// assign user id to board
-// archive board
-// unarchive board
-// get archived boards
-// remove user from board
-// convert viewer to admin
+exports.assignUserToBoard = catchAsync(async (req, res, next) => {
+  const { boardId, userId } = req.params;
+
+  if (req.user.id === userId)
+    return next(
+      new AppError(
+        "You cannot assign yourself to this board",
+        HttpStatus.BAD_REQUEST
+      )
+    );
+
+  const board = await Board.findById(boardId);
+  if (!board)
+    return next(new AppError("Board not found", HttpStatus.NOT_FOUND));
+
+  const exists = await BoardMember.findOne({ boardId, userId });
+  if (exists) {
+    return next(
+      new AppError("User already member of this board", HttpStatus.BAD_REQUEST)
+    );
+  }
+
+  const membership = await BoardMember.create({
+    boardId,
+    userId,
+    role: boardRoles.MEMBER,
+    invitedBy: req.user.id,
+  });
+
+  res.status(201).json({
+    status: "success",
+    membership,
+  });
+});
+
+exports.getBoardMembers = catchAsync(async (req, res, next) => {
+  const boardId = req.params.boardId;
+
+  const members = await BoardMember.find({ boardId });
+
+  res.status(200).json({
+    status: "success",
+    members,
+  });
+});
