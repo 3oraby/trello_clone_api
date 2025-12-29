@@ -10,7 +10,6 @@ exports.getAllBoards = handlerFactory.getAll(Board);
 exports.getBoard = handlerFactory.getOne(Board);
 exports.updateBoard = handlerFactory.updateOne(Board);
 exports.deleteBoard = handlerFactory.deleteOne(Board);
-exports.getMyBoards = handlerFactory.getAll(Board);
 
 exports.setBoardUserIds = (req, res, next) => {
   if (!req.body.ownerId) req.body.ownerId = req.user.id;
@@ -59,6 +58,22 @@ exports.restrictBoardTo = (...roles) => {
   };
 };
 
+exports.getMyBoards = catchAsync(async (req, res, next) => {
+  const userId = req.user.id;
+  const memberships = await BoardMember.find({
+    userId,
+    isArchived: false,
+  });
+
+  const boards = memberships.map((m) => m.boardId);
+
+  res.status(200).json({
+    status: "success",
+    results: boards.length,
+    boards,
+  });
+});
+
 exports.createBoard = catchAsync(async (req, res, next) => {
   if (!req.body.ownerId) req.body.ownerId = req.user.id;
 
@@ -76,44 +91,66 @@ exports.createBoard = catchAsync(async (req, res, next) => {
   });
 });
 
-// archive board
 exports.archiveBoard = catchAsync(async (req, res, next) => {
   const boardId = req.params.id;
+  const userId = req.user.id;
 
-  const board = await Board.findById(boardId);
-  if (!board) return next(new AppError("Board not found", 404));
+  const membership = await BoardMember.findOne({ boardId, userId });
 
-  board.isArchived = true;
-  await board.save();
+  if (!membership)
+    return next(
+      new AppError("Board membership not found", HttpStatus.NotFound)
+    );
+
+  if (membership.isArchived)
+    return next(new AppError("Board already archived", HttpStatus.BadRequest));
+
+  membership.isArchived = true;
+  await membership.save();
 
   res.status(200).json({
     status: "success",
-    board,
+    message: "Board archived successfully",
   });
 });
 
-// unarchive board
 exports.unarchiveBoard = catchAsync(async (req, res, next) => {
   const boardId = req.params.id;
+  const userId = req.user.id;
 
-  const board = await Board.findById(boardId);
-  if (!board) return next(new AppError("Board not found", 404));
+  const membership = await BoardMember.findOne({ boardId, userId });
+  if (!membership)
+    return next(
+      new AppError("Board membership not found", HttpStatus.NotFound)
+    );
 
-  board.isArchived = false;
-  await board.save();
+  if (!membership.isArchived)
+    return next(new AppError("Board is not archived", HttpStatus.BadRequest));
+
+  membership.isArchived = false;
+  await membership.save();
 
   res.status(200).json({
     status: "success",
-    board,
+    message: "Board unarchived successfully",
   });
 });
 
-// get archived boards
 exports.getArchivedBoards = catchAsync(async (req, res, next) => {
-  const boards = await Board.find({ isArchived: true });
+  const userId = req.user.id;
+
+  const memberships = await BoardMember.find({
+    userId,
+    isArchived: true,
+  }).populate("boardId");
+
+  const boards = memberships
+    .map((m) => m.boardId)
+    .filter((board) => board != null);
 
   res.status(200).json({
     status: "success",
+    results: boards.length,
     boards,
   });
 });

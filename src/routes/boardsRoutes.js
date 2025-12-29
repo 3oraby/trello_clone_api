@@ -19,6 +19,12 @@ router
 // use boardMemberRoutes "nested routes"
 router.use("/:boardId/members", boardMemberRoutes);
 
+router.post("/:id/archive", boardsController.archiveBoard);
+
+router.delete("/:id/unarchive", boardsController.unarchiveBoard);
+
+router.get("/archived", boardsController.getArchivedBoards);
+
 router
   .route("/:id")
   .get(boardsController.getBoard)
