@@ -5,8 +5,10 @@ const boardsController = require("../controllers/boardsController");
 
 const { protect, restrictTo } = require("../controllers/authController");
 const boardRoles = require("../enums/boardRoles");
+const boardMemberRoutes = require("./boardMemberRoutes");
 
 router.use(protect);
+
 router.get("/getAll", restrictTo("admin"), boardsController.getAllBoards);
 
 router
@@ -14,17 +16,8 @@ router
   .get(boardsController.filterByUser, boardsController.getMyBoards)
   .post(boardsController.setBoardUserIds, boardsController.createBoard);
 
-router.post(
-  "/:boardId/members/:userId",
-  boardsController.restrictBoardTo(boardRoles.OWNER),
-  boardsController.assignUserToBoard
-);
-
-router.get(
-  "/:boardId/members",
-  boardsController.restrictBoardTo(boardRoles.OWNER, boardRoles.ADMIN),
-  boardsController.getBoardMembers
-);
+// use boardMemberRoutes "nested routes"
+router.use("/:boardId/members", boardMemberRoutes);
 
 router
   .route("/:id")
