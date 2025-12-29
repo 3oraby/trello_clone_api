@@ -12,18 +12,17 @@ exports.assignUserToBoard = catchAsync(async (req, res, next) => {
     return next(
       new AppError(
         "You cannot assign yourself to this board",
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BadRequest
       )
     );
 
   const board = await Board.findById(boardId);
-  if (!board)
-    return next(new AppError("Board not found", HttpStatus.NOT_FOUND));
+  if (!board) return next(new AppError("Board not found", HttpStatus.NotFound));
 
   const exists = await BoardMember.findOne({ boardId, userId });
   if (exists) {
     return next(
-      new AppError("User already member of this board", HttpStatus.BAD_REQUEST)
+      new AppError("User already member of this board", HttpStatus.BadRequest)
     );
   }
 
@@ -51,19 +50,64 @@ exports.getBoardMembers = catchAsync(async (req, res, next) => {
   });
 });
 
-// remove user from board
 exports.removeBoardMember = catchAsync(async (req, res, next) => {
-  const boardId = req.params.id;
-  const userId = req.body.userId;
+  const boardId = req.params.boardId;
+  const userId = req.params.userId;
 
   const board = await Board.findById(boardId);
-  if (!board)
-    return next(new AppError("Board not found", HttpStatus.NOT_FOUND));
+  if (!board) return next(new AppError("Board not found", HttpStatus.NotFound));
 
   const membership = await BoardMember.findOneAndDelete({
     boardId,
     userId,
   });
+
+  if (!membership)
+    return next(
+      new AppError("User not found in this board", HttpStatus.NotFound)
+    );
+
+  res.status(200).json({
+    status: "success",
+    message: "User removed from board",
+  });
+});
+
+exports.convertMemberToAdmin = catchAsync(async (req, res, next) => {
+  const { boardId, userId } = req.params;
+
+  const board = await Board.findById(boardId);
+  if (!board) {
+    return next(new AppError("Board not found", HttpStatus.NotFound));
+  }
+
+  const membership = await BoardMember.findOne({ boardId, userId });
+  if (!membership) {
+    return next(
+      new AppError("User is not a member of this board", HttpStatus.NotFound)
+    );
+  }
+
+  if (membership.role === boardRoles.OWNER) {
+    return next(
+      new AppError(
+        "You cannot change the board owner role",
+        HttpStatus.Forbidden
+      )
+    );
+  }
+
+  if (membership.role === boardRoles.ADMIN) {
+    return next(
+      new AppError(
+        "This route is not responsible for changing admin roles",
+        HttpStatus.BadRequest
+      )
+    );
+  }
+
+  membership.role = boardRoles.ADMIN;
+  await membership.save();
 
   res.status(200).json({
     status: "success",
@@ -71,19 +115,31 @@ exports.removeBoardMember = catchAsync(async (req, res, next) => {
   });
 });
 
-// convert viewer to admin
-exports.convertViewerToAdmin = catchAsync(async (req, res, next) => {
-  const boardId = req.params.id;
-  const userId = req.body.userId;
+exports.convertAdminToMember = catchAsync(async (req, res, next) => {
+  const boardId = req.params.boardId;
+  const userId = req.params.userId;
 
   const board = await Board.findById(boardId);
-  if (!board)
-    return next(new AppError("Board not found", HttpStatus.NOT_FOUND));
+  if (!board) {
+    return next(new AppError("Board not found", HttpStatus.NotFound));
+  }
 
-  const membership = await BoardMember.findOneAndUpdate(
-    { boardId, userId },
-    { role: boardRoles.ADMIN }
-  );
+  const membership = await BoardMember.findOne({ boardId, userId });
+
+  if (!membership) {
+    return next(new AppError("User is not a member of this board", HttpStatus.NotFound));
+  }
+
+  if (membership.role === boardRoles.MEMBER) {
+    return next(new AppError("User is already a member", HttpStatus.BadRequest));
+  }
+
+  if (membership.role === boardRoles.OWNER) {
+    return next(new AppError("Owner role cannot be changed", HttpStatus.Forbidden));
+  }
+
+  membership.role = boardRoles.MEMBER;
+  await membership.save();
 
   res.status(200).json({
     status: "success",

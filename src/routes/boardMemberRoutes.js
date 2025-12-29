@@ -11,19 +11,28 @@ router.get(
   boardMemberController.getBoardMembers
 );
 
-router
-  .route("/:userId")
-  .post(
-    boardsController.restrictBoardTo(boardRoles.OWNER),
-    boardMemberController.assignUserToBoard
-  )
-  .delete(
-    boardsController.restrictBoardTo(boardRoles.OWNER),
-    boardMemberController.removeBoardMember
-  )
-  .patch(
-    boardsController.restrictBoardTo(boardRoles.OWNER),
-    boardMemberController.convertViewerToAdmin
-  );
+router.post(
+  "/:userId",
+  boardsController.restrictBoardTo(boardRoles.OWNER),
+  boardMemberController.assignUserToBoard
+);
+
+router.delete(
+  "/:userId",
+  boardsController.restrictBoardTo(boardRoles.OWNER),
+  boardMemberController.removeBoardMember
+);
+
+router.patch(
+  "/:userId/promote",
+  boardsController.restrictBoardTo(boardRoles.OWNER),
+  boardMemberController.convertMemberToAdmin
+);
+
+router.patch(
+  "/:userId/demote",
+  boardsController.restrictBoardTo(boardRoles.OWNER),
+  boardMemberController.convertAdminToMember
+);
 
 module.exports = router;

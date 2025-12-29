@@ -75,3 +75,45 @@ exports.createBoard = catchAsync(async (req, res, next) => {
     board,
   });
 });
+
+// archive board
+exports.archiveBoard = catchAsync(async (req, res, next) => {
+  const boardId = req.params.id;
+
+  const board = await Board.findById(boardId);
+  if (!board) return next(new AppError("Board not found", 404));
+
+  board.isArchived = true;
+  await board.save();
+
+  res.status(200).json({
+    status: "success",
+    board,
+  });
+});
+
+// unarchive board
+exports.unarchiveBoard = catchAsync(async (req, res, next) => {
+  const boardId = req.params.id;
+
+  const board = await Board.findById(boardId);
+  if (!board) return next(new AppError("Board not found", 404));
+
+  board.isArchived = false;
+  await board.save();
+
+  res.status(200).json({
+    status: "success",
+    board,
+  });
+});
+
+// get archived boards
+exports.getArchivedBoards = catchAsync(async (req, res, next) => {
+  const boards = await Board.find({ isArchived: true });
+
+  res.status(200).json({
+    status: "success",
+    boards,
+  });
+});
