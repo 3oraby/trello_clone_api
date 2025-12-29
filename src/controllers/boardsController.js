@@ -6,6 +6,31 @@ const boardRoles = require("../enums/boardRoles");
 const catchAsync = require("../utils/catchAsc");
 const HttpStatus = require("../enums/httpStatus");
 
+const getBoardMembership = async (boardId, userId) => {
+  const membership = await BoardMember.findOne({ boardId, userId }).populate(
+    "boardId"
+  );
+  if (!membership) {
+    throw new AppError("Board membership not found", HttpStatus.NotFound);
+  }
+  return membership;
+};
+
+const toggleArchiveStatus = async (boardId, userId, archive = true) => {
+  const membership = await getBoardMembership(boardId, userId);
+
+  if (membership.isArchived === archive) {
+    throw new AppError(
+      archive ? "Board already archived" : "Board is not archived",
+      HttpStatus.BadRequest
+    );
+  }
+
+  membership.isArchived = archive;
+  await membership.save();
+  return membership;
+};
+
 exports.getAllBoards = handlerFactory.getAll(Board);
 exports.getBoard = handlerFactory.getOne(Board);
 exports.updateBoard = handlerFactory.updateOne(Board);
@@ -22,10 +47,9 @@ exports.filterByUser = (req, res, next) => {
 };
 
 exports.restrictBoardTo = (...roles) => {
-  return async (req, res, next) => {
+  return catchAsync(async (req, res, next) => {
     const boardId = req.params.id || req.params.boardId;
     const userId = req.user.id;
-    console.log(boardId, userId);
 
     const board = await Board.findById(boardId);
     if (!board) return next(new AppError("Board not found", 404));
@@ -53,26 +77,9 @@ exports.restrictBoardTo = (...roles) => {
 
     req.board = board;
     req.boardMembership = membership;
-
     next();
-  };
+  });
 };
-
-exports.getMyBoards = catchAsync(async (req, res, next) => {
-  const userId = req.user.id;
-  const memberships = await BoardMember.find({
-    userId,
-    isArchived: false,
-  });
-
-  const boards = memberships.map((m) => m.boardId);
-
-  res.status(200).json({
-    status: "success",
-    results: boards.length,
-    boards,
-  });
-});
 
 exports.createBoard = catchAsync(async (req, res, next) => {
   if (!req.body.ownerId) req.body.ownerId = req.user.id;
@@ -92,61 +99,53 @@ exports.createBoard = catchAsync(async (req, res, next) => {
 });
 
 exports.archiveBoard = catchAsync(async (req, res, next) => {
-  const boardId = req.params.id;
-  const userId = req.user.id;
-
-  const membership = await BoardMember.findOne({ boardId, userId });
-
-  if (!membership)
-    return next(
-      new AppError("Board membership not found", HttpStatus.NotFound)
-    );
-
-  if (membership.isArchived)
-    return next(new AppError("Board already archived", HttpStatus.BadRequest));
-
-  membership.isArchived = true;
-  await membership.save();
-
+  const membership = await toggleArchiveStatus(
+    req.params.id,
+    req.user.id,
+    true
+  );
   res.status(200).json({
     status: "success",
     message: "Board archived successfully",
+    board: membership.boardId,
   });
 });
 
 exports.unarchiveBoard = catchAsync(async (req, res, next) => {
-  const boardId = req.params.id;
-  const userId = req.user.id;
-
-  const membership = await BoardMember.findOne({ boardId, userId });
-  if (!membership)
-    return next(
-      new AppError("Board membership not found", HttpStatus.NotFound)
-    );
-
-  if (!membership.isArchived)
-    return next(new AppError("Board is not archived", HttpStatus.BadRequest));
-
-  membership.isArchived = false;
-  await membership.save();
-
+  const membership = await toggleArchiveStatus(
+    req.params.id,
+    req.user.id,
+    false
+  );
   res.status(200).json({
     status: "success",
     message: "Board unarchived successfully",
+    board: membership.boardId,
+  });
+});
+
+exports.getMyBoards = catchAsync(async (req, res, next) => {
+  const memberships = await BoardMember.find({
+    userId: req.user.id,
+    isArchived: false,
+  }).populate("boardId");
+
+  const boards = memberships.map((m) => m.boardId).filter(Boolean);
+
+  res.status(200).json({
+    status: "success",
+    results: boards.length,
+    boards,
   });
 });
 
 exports.getArchivedBoards = catchAsync(async (req, res, next) => {
-  const userId = req.user.id;
-
   const memberships = await BoardMember.find({
-    userId,
+    userId: req.user.id,
     isArchived: true,
   }).populate("boardId");
 
-  const boards = memberships
-    .map((m) => m.boardId)
-    .filter((board) => board != null);
+  const boards = memberships.map((m) => m.boardId).filter(Boolean);
 
   res.status(200).json({
     status: "success",
