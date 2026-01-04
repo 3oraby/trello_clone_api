@@ -88,6 +88,6 @@ exports.deleteOne = (Model) =>
 
     res.status(204).json({
       status: "success",
-      data: null,
+      message: "Document deleted successfully",
     });
   });
