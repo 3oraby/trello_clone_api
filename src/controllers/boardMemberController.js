@@ -51,8 +51,7 @@ exports.getBoardMembers = catchAsync(async (req, res, next) => {
 });
 
 exports.removeBoardMember = catchAsync(async (req, res, next) => {
-  const boardId = req.params.boardId;
-  const userId = req.params.userId;
+  const { boardId, userId } = req.params;
 
   const board = await Board.findById(boardId);
   if (!board) return next(new AppError("Board not found", HttpStatus.NotFound));
@@ -127,15 +126,21 @@ exports.convertAdminToMember = catchAsync(async (req, res, next) => {
   const membership = await BoardMember.findOne({ boardId, userId });
 
   if (!membership) {
-    return next(new AppError("User is not a member of this board", HttpStatus.NotFound));
+    return next(
+      new AppError("User is not a member of this board", HttpStatus.NotFound)
+    );
   }
 
   if (membership.role === boardRoles.MEMBER) {
-    return next(new AppError("User is already a member", HttpStatus.BadRequest));
+    return next(
+      new AppError("User is already a member", HttpStatus.BadRequest)
+    );
   }
 
   if (membership.role === boardRoles.OWNER) {
-    return next(new AppError("Owner role cannot be changed", HttpStatus.Forbidden));
+    return next(
+      new AppError("Owner role cannot be changed", HttpStatus.Forbidden)
+    );
   }
 
   membership.role = boardRoles.MEMBER;

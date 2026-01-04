@@ -46,39 +46,56 @@ exports.filterByUser = (req, res, next) => {
   next();
 };
 
-exports.restrictBoardTo = (...roles) => {
-  return catchAsync(async (req, res, next) => {
-    const boardId = req.params.id || req.params.boardId;
-    const userId = req.user.id;
+exports.requireBoardAccess = catchAsync(async (req, res, next) => {
+  const boardId = req.params.boardId || req.params.id;
 
-    const board = await Board.findById(boardId);
-    if (!board) return next(new AppError("Board not found", 404));
+  if (!boardId) {
+    return next(new AppError("Board id is required", HttpStatus.BadRequest));
+  }
 
-    let boardRole;
-    let membership;
+  const board = await Board.findById(boardId);
+  if (!board) {
+    return next(new AppError("Board not found", HttpStatus.NotFound));
+  }
 
-    if (board.ownerId === userId) {
-      boardRole = boardRoles.ADMIN;
-    } else {
-      membership = await BoardMember.findOne({ boardId, userId });
-      if (!membership) {
-        return next(
-          new AppError("You do not have permission to access this board", 403)
-        );
-      }
-      boardRole = membership.role;
-    }
+  const membership = await BoardMember.findOne({
+    boardId,
+    userId: req.user.id,
+  });
 
-    if (!roles.includes(boardRole)) {
+  if (!membership) {
+    return next(
+      new AppError("You are not a member of this board", HttpStatus.Forbidden)
+    );
+  }
+
+  req.boardMembership = membership;
+  req.boardId = boardId;
+  next();
+});
+
+exports.restrictBoardTo = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.boardMembership) {
       return next(
-        new AppError("You do not have permission to perform this action", 403)
+        new AppError(
+          "You do not have permission to perform this action",
+          HttpStatus.Forbidden
+        )
       );
     }
 
-    req.board = board;
-    req.boardMembership = membership;
+    if (!allowedRoles.includes(req.boardMembership.role)) {
+      return next(
+        new AppError(
+          "You do not have permission to perform this action",
+          HttpStatus.Forbidden
+        )
+      );
+    }
+
     next();
-  });
+  };
 };
 
 exports.createBoard = catchAsync(async (req, res, next) => {
