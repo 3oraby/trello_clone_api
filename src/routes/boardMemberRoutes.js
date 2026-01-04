@@ -15,13 +15,13 @@ router.get(
 
 router.post(
   "/:userId",
-  boardsController.restrictBoardTo(boardRoles.OWNER),
+  boardsController.restrictBoardTo(boardRoles.OWNER, boardRoles.ADMIN),
   boardMemberController.assignUserToBoard
 );
 
 router.delete(
   "/:userId",
-  boardsController.restrictBoardTo(boardRoles.OWNER),
+  boardsController.restrictBoardTo(boardRoles.OWNER, boardRoles.ADMIN),
   boardMemberController.removeBoardMember
 );
 
