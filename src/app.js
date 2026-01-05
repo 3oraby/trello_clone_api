@@ -7,6 +7,8 @@ const userRoutes = require("./routes/userRoutes.js");
 const authRoutes = require("./routes/authRoutes.js");
 const boardsRoutes = require("./routes/boardsRoutes.js");
 const listRoutes = require("./routes/listRoutes.js");
+const cardRoutes = require("./routes/cardRoutes.js");
+
 const path = require("path");
 
 app.set("view engine", "pug");
@@ -29,6 +31,7 @@ app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/auths", authRoutes);
 app.use("/api/v1/boards", boardsRoutes);
 app.use("/api/v1/lists", listRoutes);
+app.use("/api/v1/cards", cardRoutes);
 
 app.use((req, res, next) => {
   next(new AppError(`Can not find ${req.originalUrl} on this server!`, 404));
