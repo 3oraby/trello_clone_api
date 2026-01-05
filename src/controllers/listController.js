@@ -61,11 +61,9 @@ exports.createList = catchAsync(async (req, res, next) => {
     return next(new AppError("Board not found", HttpStatus.NotFound));
   }
 
-  const lastList = await List.findOne({ boardId: boardId })
-    .sort("-position")
-    .select("position");
+  const listsCount = await List.countDocuments({ boardId });
 
-  req.body.position = lastList ? lastList.position + 1000 : 1000;
+  req.body.position = listsCount;
 
   const list = await List.create({
     ...req.body,
@@ -80,50 +78,61 @@ exports.createList = catchAsync(async (req, res, next) => {
 });
 
 exports.moveList = catchAsync(async (req, res, next) => {
-  const { prevListId, nextListId } = req.body;
+  const { newPosition } = req.body;
+  const listId = req.params.id;
 
-  const list = req.list;
-
-  let newPosition;
-
-  if (!prevListId && nextListId) {
-    const nextList = await List.findById(nextListId);
-    newPosition = nextList.position / 2;
-  } else if (prevListId && !nextListId) {
-    const prevList = await List.findById(prevListId);
-    newPosition = prevList.position + 1000;
-  } else if (prevListId && nextListId) {
-    const prevList = await List.findById(prevListId);
-    const nextList = await List.findById(nextListId);
-    newPosition = (prevList.position + nextList.position) / 2;
-  } else {
-    return next(new AppError("Invalid move operation", HttpStatus.BadRequest));
+  if (
+    typeof newPosition !== "number" ||
+    isNaN(newPosition) ||
+    newPosition < 0
+  ) {
+    return next(
+      new AppError(
+        "Invalid newPosition: must be a non-negative number",
+        HttpStatus.BadRequest
+      )
+    );
   }
 
-  list.position = newPosition;
-  await list.save();
+  const list = await List.findById(listId);
+  if (!list) return next(new AppError("List not found", HttpStatus.NotFound));
 
-  res.status(200).json({
-    status: "success",
-    list,
-  });
-});
-
-exports.normalizeLists = catchAsync(async (req, res, next) => {
-  const lists = await List.find({ boardId: req.params.boardId }).sort(
+  const boardLists = await List.find({ boardId: list.boardId }).sort(
     "position"
   );
 
-  let position = 1000;
-
-  for (const list of lists) {
-    list.position = position;
-    position += 1000;
-    await list.save();
+  if (newPosition >= boardLists.length) {
+    return next(
+      new AppError(
+        `Invalid newPosition: must be less than ${boardLists.length}`,
+        HttpStatus.BadRequest
+      )
+    );
   }
 
-  res.status(200).json({
-    status: "success",
-    message: "Lists normalized successfully",
-  });
+  const oldIndex = boardLists.findIndex((l) => l._id.equals(list._id));
+  if (oldIndex === -1)
+    return next(new AppError("List not found in board", HttpStatus.NotFound));
+
+  if (newPosition === oldIndex) {
+    return next(
+      new AppError("List is already in this position", HttpStatus.BadRequest)
+    );
+  }
+
+  boardLists.splice(oldIndex, 1);
+  boardLists.splice(newPosition, 0, list);
+
+  const bulkOps = boardLists.map((l, index) => ({
+    updateOne: {
+      filter: { _id: l._id },
+      update: { position: index },
+    },
+  }));
+
+  await List.bulkWrite(bulkOps);
+
+  res
+    .status(200)
+    .json({ status: "success", message: "List moved successfully" });
 });

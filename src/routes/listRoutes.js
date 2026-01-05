@@ -22,13 +22,6 @@ router
     listController.deleteList
   );
 
-router.post(
-  "/normalize",
-  boardsController.requireBoardAccess,
-  boardsController.restrictBoardTo(boardRoles.OWNER, boardRoles.ADMIN),
-  listController.normalizeLists
-);
-
 router.patch(
   "/:id/move",
   listController.requireBoardAccess,
