@@ -4,6 +4,9 @@ const listController = require("../controllers/listController");
 const authController = require("../controllers/authController");
 const boardRoles = require("../enums/boardRoles");
 const boardsController = require("../controllers/boardsController");
+const cardRoutes = require("./cardRoutes");
+
+router.use("/:id/cards", cardRoutes);
 
 router.use(authController.protect);
 

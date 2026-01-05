@@ -56,10 +56,6 @@ exports.getAllLists = catchAsync(async (req, res, next) => {
 exports.createList = catchAsync(async (req, res, next) => {
   const boardId = req.params.boardId;
   const createdBy = req.user.id;
-  const board = await Board.findById(boardId);
-  if (!board) {
-    return next(new AppError("Board not found", HttpStatus.NotFound));
-  }
 
   const listsCount = await List.countDocuments({ boardId });
 
@@ -80,6 +76,7 @@ exports.createList = catchAsync(async (req, res, next) => {
 exports.moveList = catchAsync(async (req, res, next) => {
   const { newPosition } = req.body;
   const listId = req.params.id;
+  const list = req.list;
 
   if (
     typeof newPosition !== "number" ||
@@ -93,9 +90,6 @@ exports.moveList = catchAsync(async (req, res, next) => {
       )
     );
   }
-
-  const list = await List.findById(listId);
-  if (!list) return next(new AppError("List not found", HttpStatus.NotFound));
 
   const boardLists = await List.find({ boardId: list.boardId }).sort(
     "position"
@@ -132,7 +126,9 @@ exports.moveList = catchAsync(async (req, res, next) => {
 
   await List.bulkWrite(bulkOps);
 
-  res
-    .status(200)
-    .json({ status: "success", message: "List moved successfully" });
+  res.status(200).json({
+    status: "success",
+    message: "List moved successfully",
+    list: { id: list._id, position: newPosition },
+  });
 });
