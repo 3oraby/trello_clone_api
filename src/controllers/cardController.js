@@ -7,7 +7,7 @@ const AppError = require("../utils/appError");
 const HttpStatus = require("../enums/httpStatus");
 const BoardMember = require("../models/boardMemberModel");
 
-exports.requireBoardAccess = catchAsync(async (req, res, next) => {
+exports.requireCardAccess = catchAsync(async (req, res, next) => {
   const cardId = req.params.id;
 
   if (!cardId) {
