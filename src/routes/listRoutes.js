@@ -17,17 +17,17 @@ router
 
 router
   .route("/:id")
-  .get(listController.getList)
-  .patch(listController.requireBoardAccess, listController.updateList)
+  .get(listController.requireListAccess, listController.getList)
+  .patch(listController.requireListAccess, listController.updateList)
   .delete(
-    listController.requireBoardAccess,
+    listController.requireListAccess,
     boardsController.restrictBoardTo(boardRoles.OWNER, boardRoles.ADMIN),
     listController.deleteList
   );
 
 router.patch(
   "/:id/move",
-  listController.requireBoardAccess,
+  listController.requireListAccess,
   listController.moveList
 );
 

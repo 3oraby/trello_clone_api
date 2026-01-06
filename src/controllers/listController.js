@@ -7,7 +7,7 @@ const HttpStatus = require("../enums/httpStatus");
 const boardRoles = require("../enums/boardRoles");
 const BoardMember = require("../models/boardMemberModel");
 
-exports.requireBoardAccess = catchAsync(async (req, res, next) => {
+exports.requireListAccess = catchAsync(async (req, res, next) => {
   const listId = req.params.id;
 
   if (!listId) {
