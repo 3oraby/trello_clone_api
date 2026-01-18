@@ -31,8 +31,6 @@ app.set("views", path.join(__dirname, "templates"));
 app.use(cors());
 app.options(/.*/, cors());
 
-app.use(express.static(path.join(__dirname, "public")));
-
 app.use(helmet());
 
 if (process.env.NODE_ENV === "development") {
