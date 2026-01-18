@@ -64,8 +64,8 @@ const userSchema = new mongoose.Schema(
     emailOTP: String,
     emailOTPExpires: Date,
   },
-  { timestamps: true },
   {
+    timestamps: true,
     toJSON: {
       transform: function (doc, ret) {
         return {
@@ -74,11 +74,13 @@ const userSchema = new mongoose.Schema(
           email: ret.email,
           role: ret.role,
           isVerified: ret.isVerified,
-          photo: ret.photo,
+          photo: ret.photo || null,
+          createdAt: ret.createdAt,
+          updatedAt: ret.updatedAt,
         };
       },
     },
-  }
+  },
 );
 
 // hash password before save user
@@ -96,6 +98,10 @@ userSchema.pre(/^find/, function () {
   this.find({ active: true });
 });
 
+userSchema.pre(/^findOne/, function () {
+  this.find({ active: true });
+});
+
 // update passwordChangedAt when password is changed
 userSchema.pre("save", function () {
   if (!this.isModified("password") || this.isNew) return;
@@ -107,7 +113,7 @@ userSchema.pre("save", function () {
 // check password
 userSchema.methods.correctPassword = async function (
   candidatePassword,
-  userPassword
+  userPassword,
 ) {
   if (!candidatePassword || !userPassword) return false;
   return await bcrypt.compare(candidatePassword, userPassword);
@@ -130,7 +136,7 @@ userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   if (this.passwordChangedAt) {
     const changedTimestamp = parseInt(
       this.passwordChangedAt.getTime() / 1000,
-      10
+      10,
     );
     return JWTTimestamp < changedTimestamp;
   }

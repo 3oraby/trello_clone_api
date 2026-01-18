@@ -17,7 +17,7 @@ const createSendToken = (user, statusCode, res, message) => {
 
   const cookieOptions = {
     expires: new Date(
-      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000,
     ),
     httpOnly: true,
   };
@@ -48,8 +48,8 @@ exports.protect = catchAsc(async (req, res, next) => {
     return next(
       new AppError(
         "You are not logged in! Please log in to get access.",
-        HttpStatus.Unauthorized
-      )
+        HttpStatus.Unauthorized,
+      ),
     );
   }
 
@@ -61,8 +61,8 @@ exports.protect = catchAsc(async (req, res, next) => {
     return next(
       new AppError(
         "The user belonging to this token does no longer exist.",
-        HttpStatus.Unauthorized
-      )
+        HttpStatus.Unauthorized,
+      ),
     );
   }
 
@@ -70,8 +70,8 @@ exports.protect = catchAsc(async (req, res, next) => {
     return next(
       new AppError(
         "User recently changed password! Please log in again.",
-        HttpStatus.Unauthorized
-      )
+        HttpStatus.Unauthorized,
+      ),
     );
   }
 
@@ -83,7 +83,7 @@ exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       return next(
-        new AppError("You do not have permission to perform this action", 403)
+        new AppError("You do not have permission to perform this action", 403),
       );
     }
     next();
@@ -101,7 +101,7 @@ exports.login = catchAsc(async (req, res, next) => {
 
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(
-      new AppError("Incorrect email or password", HttpStatus.Unauthorized)
+      new AppError("Incorrect email or password", HttpStatus.Unauthorized),
     );
   }
 
@@ -147,8 +147,8 @@ exports.updatePassword = catchAsc(async (req, res, next) => {
     return next(
       new AppError(
         "Please provide currentPassword , newPassword and newPasswordConfirm",
-        400
-      )
+        400,
+      ),
     );
   }
 
@@ -156,7 +156,7 @@ exports.updatePassword = catchAsc(async (req, res, next) => {
 
   if (!user || !(await user.correctPassword(currentPassword, user.password))) {
     return next(
-      new AppError("current password is not correct", HttpStatus.Unauthorized)
+      new AppError("current password is not correct", HttpStatus.Unauthorized),
     );
   }
 
@@ -185,7 +185,7 @@ exports.forgetPassword = catchAsc(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   const resetURL = `${req.protocol}://${req.get(
-    "host"
+    "host",
   )}/resetPassword/${resetToken}`;
 
   try {
@@ -203,8 +203,8 @@ exports.forgetPassword = catchAsc(async (req, res, next) => {
     return next(
       new AppError(
         "There was an error sending the email. Try again later!",
-        500
-      )
+        500,
+      ),
     );
   }
 });
@@ -215,8 +215,8 @@ exports.resetPassword = catchAsc(async (req, res, next) => {
     return next(
       new AppError(
         "Please provide password and passwordConfirm",
-        HttpStatus.BadRequest
-      )
+        HttpStatus.BadRequest,
+      ),
     );
   }
 
@@ -232,7 +232,7 @@ exports.resetPassword = catchAsc(async (req, res, next) => {
 
   if (!user) {
     return next(
-      new AppError("Token is invalid or has expired", HttpStatus.BadRequest)
+      new AppError("Token is invalid or has expired", HttpStatus.BadRequest),
     );
   }
 
@@ -250,7 +250,7 @@ exports.verifyEmail = catchAsc(async (req, res, next) => {
   const { email, otp } = req.body;
   if (!email || !otp) {
     return next(
-      new AppError("Please provide email and otp", HttpStatus.BadRequest)
+      new AppError("Please provide email and otp", HttpStatus.BadRequest),
     );
   }
 
